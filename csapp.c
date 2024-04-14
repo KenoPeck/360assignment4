@@ -859,6 +859,9 @@ ssize_t rio_readnb(rio_t *rp, void *usrbuf, size_t n)
 	    break;              /* EOF */
 	nleft -= nread;
 	bufp += nread;
+    if (strstr(usrbuf, "\r\n\r\n")){ // end of request reached
+        break;
+    }
     }
     return (n - nleft);         /* return >= 0 */
 }
@@ -905,10 +908,9 @@ ssize_t Rio_readn(int fd, void *ptr, size_t nbytes)
     return n;
 }
 
-void Rio_writen(int fd, void *usrbuf, size_t n) 
+int Rio_writen(int fd, void *usrbuf, size_t n) 
 {
-    if (rio_writen(fd, usrbuf, n) != n)
-	unix_error("Rio_writen error");
+    return rio_writen(fd, usrbuf, n);
 }
 
 void Rio_readinitb(rio_t *rp, int fd)
@@ -918,11 +920,7 @@ void Rio_readinitb(rio_t *rp, int fd)
 
 ssize_t Rio_readnb(rio_t *rp, void *usrbuf, size_t n) 
 {
-    ssize_t rc;
-
-    if ((rc = rio_readnb(rp, usrbuf, n)) < 0)
-	unix_error("Rio_readnb error");
-    return rc;
+    return rio_readnb(rp, usrbuf, n);
 }
 
 ssize_t Rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen) 

@@ -145,11 +145,10 @@ int Accept(int s, struct sockaddr *addr, socklen_t *addrlen);
 void Connect(int sockfd, struct sockaddr *serv_addr, int addrlen);
 
 /* Protocol independent wrappers */
-void Getaddrinfo(const char *node, const char *service, 
-                 const struct addrinfo *hints, struct addrinfo **res);
+//void Getaddrinfo(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo **res);
 void Getnameinfo(const struct sockaddr *sa, socklen_t salen, char *host, 
                  size_t hostlen, char *serv, size_t servlen, int flags);
-void Freeaddrinfo(struct addrinfo *res);
+//void Freeaddrinfo(struct addrinfo *res);
 void Inet_ntop(int af, const void *src, char *dst, socklen_t size);
 void Inet_pton(int af, const char *src, void *dst); 
 
@@ -181,7 +180,7 @@ ssize_t	rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen);
 
 /* Wrappers for Rio package */
 ssize_t Rio_readn(int fd, void *usrbuf, size_t n);
-void Rio_writen(int fd, void *usrbuf, size_t n);
+int Rio_writen(int fd, void *usrbuf, size_t n);
 void Rio_readinitb(rio_t *rp, int fd); 
 ssize_t Rio_readnb(rio_t *rp, void *usrbuf, size_t n);
 ssize_t Rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen);
