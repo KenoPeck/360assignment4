@@ -6,7 +6,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/proxy",
-            "args": [],
+            "args": ["40064"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

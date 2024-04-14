@@ -15,7 +15,7 @@ static const char *user_agent_hdr = "User-Agent: Mozilla/5.0 (X11; Linux x86_64;
 #define PATH_SIZE 1024
 
 void proxy(int client_soc) {
-    char buffer[BUFFER_SIZE];
+    char buffer[BUFFER_SIZE]; // initial buffer for client request
     bzero(buffer, BUFFER_SIZE);
 
     rio_t client_rio;
@@ -49,7 +49,7 @@ void proxy(int client_soc) {
         printf("\nReceived request from client:\n%s", buffer);
     }
 
-    // Extract hostname from request
+    // Extracting hostname from request ------------------------------------------------------
     char hostname[HOSTNAME_SIZE];
     char *hostname_start = strstr(buffer, "Host: ");
     char *hostname_end;
@@ -88,10 +88,20 @@ void proxy(int client_soc) {
         hostname_end = port_separator;
     }
     
-    // Get hostname
-    strncpy(hostname, hostname_start, hostname_end - hostname_start);
-    hostname[hostname_end - hostname_start] = '\0';
-    printf("Hostname: %s\n", hostname);
+    // Copy hostname value
+    if(hostname_start && strlen(hostname_start) >= (hostname_end - hostname_start)){
+        strncpy(hostname, hostname_start, hostname_end - hostname_start);
+        hostname[hostname_end - hostname_start] = '\0';
+        printf("Hostname: %s\n", hostname);
+    }
+    else{
+        printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+        fprintf(stderr, "Error: Request Hostname is Invalid: %s\n", hostname_start);
+        printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+        close(client_soc);
+        return;
+    }
+    
 
     // Extract the length of the hostname
     size_t hostname_len;
@@ -104,6 +114,7 @@ void proxy(int client_soc) {
     else{
         hostname_len = strlen(hostname);
     }
+    //------------------------------------------------------------------------------------------------------------
 
     // Extract the filepath
     char* path_start;
@@ -571,25 +582,34 @@ int main(int argc, char **argv)
     //int port = 40064;
 
     // Defining sockets and addresses
-    int proxy_soc, client_soc;
+    int proxy_soc, client_soc, ipv6 = 0;
     struct sockaddr_in proxy_address, client_address;
     socklen_t client_len = sizeof(client_address);
 
     // Creating proxy socket
-    proxy_soc = socket(AF_INET, SOCK_STREAM, 0);
+    proxy_soc = socket(AF_INET, SOCK_STREAM, 0); // Include issues wouldn't recognize addrinfo struct definition
     if (proxy_soc <= -1){
-        fprintf(stderr, "Error: Couldn't Open Socket!\n");
-        close(proxy_soc);
-        exit(1);
+        proxy_soc = socket(AF_INET6, SOCK_STREAM, 0);
+        ipv6 = 1;
+        if (proxy_soc <= -1){
+            fprintf(stderr, "Error: Couldn't Open Socket!\n");
+            close(proxy_soc);
+            exit(1);
+        }
     }
 
     // Allocating memory for proxy address
     bzero((char *)&proxy_address, sizeof(proxy_address));
 
     // Initializing proxy address
-    proxy_address.sin_family = AF_INET;
-    proxy_address.sin_addr.s_addr = INADDR_ANY;
-    proxy_address.sin_port = htons(port);
+    if(ipv6 == 0){
+        proxy_address.sin_family = AF_INET; // setting to ipv4
+    }
+    else{
+        proxy_address.sin_family = AF_INET6; // setting to ipv6
+    }
+    proxy_address.sin_addr.s_addr = INADDR_ANY; // accepting any connections on the designated port
+    proxy_address.sin_port = htons(port); // setting port to input val
 
     // Binding proxy socket
     if (bind(proxy_soc, (struct sockaddr *)&proxy_address, sizeof(proxy_address)) <= -1){
@@ -606,14 +626,16 @@ int main(int argc, char **argv)
     while (proxy_running == 1) {
         bzero((char *)&client_address, sizeof(client_address));
         // Accepting connection from client
-        client_soc = accept(proxy_soc, (struct sockaddr *)&client_address, &client_len);
+        client_soc = accept(proxy_soc, (struct sockaddr *)&client_address, &client_len); // waiting for connection to accept then accepting
         if (client_soc <= -1){
             fprintf(stderr, "Error: Couldn't Accept Socket!\n");
             close(client_soc);
             continue;
         }
 
-        printf("Accepted connection from %s:%d\n", inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port));
+        int client_port = ntohs(client_address.sin_port);
+        char* client_addr_str = inet_ntoa(client_address.sin_addr);
+        printf("Accepted connection from %s:%d\n", client_addr_str, client_port);
 
         // Handling the request
         proxy(client_soc);
